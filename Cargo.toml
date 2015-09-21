@@ -1,0 +1,10 @@
+[package]
+name = "encoding_literals"
+version = "0.1.0"
+authors = ["Andrew Stanton-Nurse <andrew@andrewnurse.net>"]
+
+[lib]
+crate-type = ["dylib"]
+
+[dependencies]
+encoding = "0.2"
