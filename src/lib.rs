@@ -7,7 +7,7 @@ extern crate encoding;
 use syntax::ast;
 use syntax::codemap;
 use syntax::ptr::P;
-use syntax::parse::token;
+use syntax::parse::{self,token};
 use syntax::ext::build::AstBuilder;
 use syntax::ext::base::{ExtCtxt,MacResult,MacEager,DummyResult};
 
@@ -17,13 +17,12 @@ use rustc::plugin;
 
 fn expand<T>(encoding: &T, ct: &mut ExtCtxt, sp: codemap::Span, args: &[ast::TokenTree], c_str: bool, size_in_bytes: isize) -> Box<MacResult> where T: Encoding {
     let text = match args {
-        [ast::TtToken(_, token::Literal(token::Lit::Str_(s), _))] => s.as_str().to_string(),
+        [ast::TtToken(_, token::Token::Literal(token::Lit::Str_(s), _))] => parse::str_lit(&(s.as_str())),
         _ => {
             ct.span_err(sp, "argument should be a single string literal");
             return DummyResult::any(sp);
         }
     };
-    println!("ENCODING: text={:?}", text);
 
     // Encode the string
     let encoded = match encoding.encode(&text, EncoderTrap::Strict) {

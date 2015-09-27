@@ -7,10 +7,26 @@ use encoding::all;
 use encoding::types::{Encoding,EncoderTrap,DecoderTrap};
 
 #[test]
-pub fn escape_sequences_are_properly_encoded() {
+pub fn one_byte_escape_sequences_are_properly_encoded() {
     let runtime_encoded = all::UTF_16LE.encode("Te\r\nst", EncoderTrap::Strict).ok().unwrap();
     let literal = utf16!("Te\r\nst");
     assert_eq!("Te\r\nst", all::UTF_16LE.decode(&literal, DecoderTrap::Strict).ok().unwrap());
+    assert_eq!(runtime_encoded, literal);
+}
+
+#[test]
+pub fn three_byte_escape_sequences_are_properly_encoded() {
+    let runtime_encoded = all::UTF_16LE.encode("Te\x43st", EncoderTrap::Strict).ok().unwrap();
+    let literal = utf16!("Te\x43st");
+    assert_eq!("Te\x43st", all::UTF_16LE.decode(&literal, DecoderTrap::Strict).ok().unwrap());
+    assert_eq!(runtime_encoded, literal);
+}
+
+#[test]
+pub fn white_space_escape_sequences_are_properly_encoded() {
+    let runtime_encoded = all::UTF_16LE.encode("Te\u{1234}st", EncoderTrap::Strict).ok().unwrap();
+    let literal = utf16!("Te\u{1234}st");
+    assert_eq!("Te\u{1234}st", all::UTF_16LE.decode(&literal, DecoderTrap::Strict).ok().unwrap());
     assert_eq!(runtime_encoded, literal);
 }
 

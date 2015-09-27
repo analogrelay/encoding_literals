@@ -1,6 +1,6 @@
 [package]
 name = "encoding_literals"
-version = "0.1.1"
+version = "0.1.2"
 
 description = "UTF-16 literals for Rust"
 license = "Apache-2.0"
