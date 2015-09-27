@@ -1,6 +1,12 @@
 [package]
 name = "encoding_literals"
-version = "0.1.0"
+version = "0.1.1"
+
+description = "UTF-16 literals for Rust"
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/anurse/encoding_literals"
+homepage = "https://github.com/anurse/encoding_literals"
 authors = ["Andrew Stanton-Nurse <andrew@andrewnurse.net>"]
 
 [lib]
