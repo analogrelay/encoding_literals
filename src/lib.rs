@@ -2,34 +2,38 @@
 
 extern crate syntax;
 extern crate rustc;
+extern crate rustc_plugin;
 extern crate encoding;
 
 use syntax::ast;
 use syntax::codemap;
 use syntax::ptr::P;
-use syntax::parse::{self,token};
 use syntax::ext::build::AstBuilder;
-use syntax::ext::base::{ExtCtxt,MacResult,MacEager,DummyResult};
+use syntax::ext::base::{ExtCtxt, MacResult, MacEager, DummyResult, get_single_str_from_tts};
 
-use encoding::types::{EncoderTrap,Encoding};
+use encoding::types::{EncoderTrap, Encoding};
 
-use rustc::plugin;
+use rustc_plugin::Registry;
 
-fn expand<T>(encoding: &T, ct: &mut ExtCtxt, sp: codemap::Span, args: &[ast::TokenTree], c_str: bool, size_in_bytes: isize) -> Box<MacResult> where T: Encoding {
-    let text = match args {
-        [ast::TtToken(_, token::Token::Literal(token::Lit::Str_(s), _))] => parse::str_lit(&(s.as_str())),
-        _ => {
-            ct.span_err(sp, "argument should be a single string literal");
-            return DummyResult::any(sp);
-        }
+fn expand<T>(name: &str,
+             encoding: &T,
+             ct: &mut ExtCtxt,
+             sp: codemap::Span,
+             args: &[ast::TokenTree],
+             c_str: bool,
+             size_in_bytes: isize) -> Box<MacResult> where T: Encoding {
+
+    let text = match get_single_str_from_tts(ct, sp, args, name) {
+        Some(text) => text,
+        None => return DummyResult::expr(sp)
     };
 
     // Encode the string
     let encoded = match encoding.encode(&text, EncoderTrap::Strict) {
         Ok(vec) => vec,
         Err(_) => {
-            ct.span_err(sp, &format!("literal could not be encoded to {}", encoding.name()));
-            return DummyResult::any(sp);
+            ct.span_err(sp, &format!("{}: literal could not be encoded to {}", name, encoding.name()));
+            return DummyResult::expr(sp);
         }
     };
 
@@ -49,33 +53,30 @@ fn expand<T>(encoding: &T, ct: &mut ExtCtxt, sp: codemap::Span, args: &[ast::Tok
 }
 
 fn expand_c_utf8(ct: &mut ExtCtxt, sp: codemap::Span, args: &[ast::TokenTree]) -> Box<MacResult> {
-    expand(encoding::all::UTF_8, ct, sp, args, true, 1)
+    expand("c_utf8", encoding::all::UTF_8, ct, sp, args, true, 1)
 }
 
 fn expand_c_utf16(ct: &mut ExtCtxt, sp: codemap::Span, args: &[ast::TokenTree]) -> Box<MacResult> {
-    expand(encoding::all::UTF_16LE, ct, sp, args, true, 2)
+    expand("c_utf16", encoding::all::UTF_16LE, ct, sp, args, true, 2)
 }
 
 fn expand_c_utf16be(ct: &mut ExtCtxt, sp: codemap::Span, args: &[ast::TokenTree]) -> Box<MacResult> {
-    expand(encoding::all::UTF_16BE, ct, sp, args, true, 2)
+    expand("c_utf16be", encoding::all::UTF_16BE, ct, sp, args, true, 2)
 }
 
 fn expand_utf16(ct: &mut ExtCtxt, sp: codemap::Span, args: &[ast::TokenTree]) -> Box<MacResult> {
-    expand(encoding::all::UTF_16LE, ct, sp, args, false, 2)
+    expand("utf16", encoding::all::UTF_16LE, ct, sp, args, false, 2)
 }
 
 fn expand_utf16be(ct: &mut ExtCtxt, sp: codemap::Span, args: &[ast::TokenTree]) -> Box<MacResult> {
-    expand(encoding::all::UTF_16BE, ct, sp, args, false, 2)
+    expand("utf16be", encoding::all::UTF_16BE, ct, sp, args, false, 2)
 }
 
 #[plugin_registrar]
-pub fn plugin_registrar(reg: &mut plugin::Registry) {
+pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_macro("utf16", expand_utf16);
-    reg.register_macro("utf16le", expand_utf16);
     reg.register_macro("utf16be", expand_utf16be);
-
     reg.register_macro("c_utf8", expand_c_utf8);
     reg.register_macro("c_utf16", expand_c_utf16);
-    reg.register_macro("c_utf16le", expand_c_utf16);
     reg.register_macro("c_utf16be", expand_c_utf16be);
 }
